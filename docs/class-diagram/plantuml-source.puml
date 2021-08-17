@@ -1,0 +1,111 @@
+@startuml
+
+title Robotarm library class diagram
+' skinparam linetype polyline
+
+package "Robotarm namespace"
+{
+    package "Public (accessible to user of library)"
+    {
+
+        class Robotarm
+        {
+            + begin() : bool
+            + update() : void
+            + moveToPredefinedPosition(position : ArmPositions) : bool
+            + sendCommand(command : string) : bool
+            + stop() : bool
+            ~ moveToPosition(joint : Joints, position : long, time : long) : bool
+        }
+
+        enum ArmPositions
+        {
+            PARK
+            READY
+            STRAIGHT
+        }
+    }
+
+    package "Private (not accessible to user of library)"
+    {
+        enum Joints
+        {
+            UNDEFINED
+            SHOULDER_ROTATE
+            SHOULDER_UP_DOWN
+            ELBOW
+            WRIST_ROTATE
+            WRIST_UP_DOWN
+            GRIPPER
+        }
+
+        class Joint
+        {
+            + currentPosition : long
+            + targetPosition : long
+            + targetTime : long
+            + minPosition : long
+            + maxPosition : long
+            + centerPosition : long
+
+            + begin(pinNr : int) : bool
+            + update() : void
+            + stop() : bool
+            + moveTo(newPosition : long) : bool
+            + moveTo(newPosition : long, time : long) : bool
+        }
+
+        enum MessageTypes
+        {
+            INVALID
+            STOP
+            MOVEMENT
+            PREDEFINED_MOVEMENT
+            CENTER_OFFSET
+            QUERY_STATUS
+            QUERY_PULSE_WIDTH
+        }
+
+        class Parser
+        {
+            - messageType : MessageTypes
+
+            + parseString(string : string) : void
+            - splitInSegments() : void
+            - isStopCommand() : bool
+            - isQueryCommand() : bool
+            - isPositionQuearyCommand() : bool
+            - getJoint(segmentIndex : int) : Joints
+            - isJoint(segmentIndex : int) : bool
+            - isOffset(segmentIndex : int) : bool
+            - getOffset(segmentIndex : int) : long
+            - isPosition(segmentIndex : int) : bool
+            - getPosition(segmentIndex : int) : long
+            - isSpeed(segmentIndex : int) : bool
+            - getSpeed(segmentIndex : int) : long
+            - isTime(segmentIndex : int) : bool
+            - getTime(segmentIndex : int) : long
+        }
+
+        class MoveCommand << (S, CornflowerBlue) >>
+        {
+            + joint : Joints
+            + newPosition : long
+            + speed : long
+            + time : long
+        }
+    }
+}
+
+Robotarm "\n1" *--- "*\n" Joint
+Robotarm - ArmPositions : Allows the end-user to provide a \n predefined position to the robotarm
+Joints - Robotarm : Used to internally \n link the joints to a \n human-readable name
+Robotarm --> Parser : Robotarm constrols and stores \n an instance of the Parser
+
+MessageTypes <- Parser : Uses these types \n to report back to \n the Robotarm class
+Joints -- Parser : The parser converts the string \n representation to the enum
+MoveCommand <- Parser : The parser creates (and then internally stores) X \n instances of MoveCommand, to store information \n about where and how each Joint should move
+ArmPositions ---- Parser : Used to define \n a default \n position when needed
+
+Joints -- MoveCommand : MoveCommand uses Joints \n to internally store the Joint
+@enduml
